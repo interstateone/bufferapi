@@ -67,8 +67,15 @@ type UpdateResponse struct {
 	Updates          []Update `json:"updates"`
 }
 
-func ClientFactory(token string) *Client {
-	config := &oauth.Config{}
+func ClientFactory(token, clientId, clientSecret, scope, authUrl, tokenUrl, cacheFile string) *Client {
+	config := &oauth.Config{
+		ClientId:     clientId,
+		ClientSecret: clientSecret,
+		Scope:        scope,
+		AuthURL:      authUrl,
+		TokenURL:     tokenUrl,
+		TokenCache:   oauth.CacheFile(cacheFile),
+	}
 	transport := &oauth.Transport{Config: config}
 	t := &oauth.Token{AccessToken: token}
 	transport.Token = t
