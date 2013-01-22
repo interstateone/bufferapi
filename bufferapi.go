@@ -156,7 +156,7 @@ func (c *Client) Update(update *NewUpdate) (resp *UpdateResponse, err error) {
 	if err != nil {
 		return nil, err
 	} else if !resp.Success {
-		return nil, errors.New(respBody)
+		return nil, errors.New(string(respBody))
 	}
 	return resp, nil
 }
