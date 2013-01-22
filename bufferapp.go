@@ -1,4 +1,4 @@
-package bufferapp
+package bufferapi
 
 import (
 	"bytes"
