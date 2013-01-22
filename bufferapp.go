@@ -68,7 +68,8 @@ type UpdateResponse struct {
 }
 
 func ClientFactory(token string) *Client {
-	transport := &oauth.Transport{}
+	config := &oauth.Config{}
+	transport := &oauth.Transport{Config: config}
 	t := &oauth.Token{AccessToken: token}
 	transport.Token = t
 	c := Client{AccessToken: token, transport: transport}
@@ -147,6 +148,8 @@ func (c *Client) Update(update *NewUpdate) (resp *UpdateResponse, err error) {
 	err = json.Unmarshal(respBody, resp)
 	if err != nil {
 		return nil, err
+	} else if !resp.Success {
+		return nil, errors.New(respBody)
 	}
 	return resp, nil
 }
