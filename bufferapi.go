@@ -1,13 +1,14 @@
 package bufferapi
 
 import (
-	"bytes"
 	"code.google.com/p/goauth2/oauth"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"regexp"
+	"strconv"
 )
 
 type Client struct {
@@ -67,57 +68,54 @@ type UpdateResponse struct {
 	Updates          []Update `json:"updates"`
 }
 
-func ClientFactory(token, clientId, clientSecret, scope, authUrl, tokenUrl, cacheFile string) *Client {
-	config := &oauth.Config{
-		ClientId:     clientId,
-		ClientSecret: clientSecret,
-		Scope:        scope,
-		AuthURL:      authUrl,
-		TokenURL:     tokenUrl,
-		TokenCache:   oauth.CacheFile(cacheFile),
-	}
-	transport := &oauth.Transport{Config: config}
+type Valuer interface {
+	UrlValues() url.Values
+}
+
+func ClientFactory(token string, transport *oauth.Transport) *Client {
 	t := &oauth.Token{AccessToken: token}
 	transport.Token = t
 	c := Client{AccessToken: token, transport: transport}
 	return &c
 }
 
-func (c *Client) API(method, url string, data interface{}) (respBody []byte, err error) {
+func (c *Client) API(method, uri string, data Valuer) (respBody []byte, err error) {
 	jsonPattern, _ := regexp.Compile(`\.json$`)
-	if !jsonPattern.Match([]byte(url)) {
-		url += ".json"
+	if !jsonPattern.Match([]byte(uri)) {
+		uri += ".json"
 	}
-	url = "https://api.bufferapp.com/1/" + url
-
-	jsonBody, _ := json.Marshal(data)
-	b := bytes.NewBuffer(jsonBody)
+	uri = "https://api.bufferapp.com/1/" + uri
 
 	var resp *http.Response
 	switch method {
 	case "get":
-		resp, err = c.transport.Client().Get(url)
+		resp, err = c.transport.Client().Get(uri)
 		if err != nil {
 			return nil, err
 		}
-		defer resp.Body.Close()
 
 	case "post":
-		resp, err := c.transport.Client().Post(url, "application/json", b)
+		var values url.Values
+		if data == nil {
+			values = make(url.Values)
+		} else {
+			values = data.UrlValues()
+		}
+		resp, err = c.transport.Client().PostForm(uri, values)
 		if err != nil {
 			return nil, err
 		}
-		defer resp.Body.Close()
 
 	default:
 		return nil, errors.New("Not a valid request type")
 	}
+	defer resp.Body.Close()
+	respBody, err = ioutil.ReadAll((*resp).Body)
 
 	if resp.StatusCode >= 400 {
-		return nil, errors.New(resp.Status)
+		return nil, errors.New((*resp).Status)
 	}
 
-	respBody, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +129,7 @@ func (c *Client) Get(url string) (resp []byte, err error) {
 	return c.API("get", url, nil)
 }
 
-func (c *Client) Post(url string, params interface{}) (resp []byte, err error) {
+func (c *Client) Post(url string, params Valuer) (resp []byte, err error) {
 	return c.API("post", url, params)
 }
 
@@ -140,7 +138,8 @@ func (c *Client) Profiles() (profiles *[]Profile, err error) {
 	if err != nil {
 		return nil, err
 	}
-	err = json.Unmarshal(body, profiles)
+
+	err = json.Unmarshal(body, &profiles)
 	if err != nil {
 		return nil, err
 	}
@@ -152,11 +151,25 @@ func (c *Client) Update(update *NewUpdate) (resp *UpdateResponse, err error) {
 	if err != nil {
 		return nil, err
 	}
-	err = json.Unmarshal(respBody, resp)
+	err = json.Unmarshal(respBody, &resp)
 	if err != nil {
 		return nil, err
 	} else if !resp.Success {
 		return nil, errors.New(string(respBody))
 	}
 	return resp, nil
+}
+
+func (u *NewUpdate) UrlValues() (values url.Values) {
+	values = make(url.Values)
+	values.Set("text", u.Text)
+	for key, value := range u.Media {
+		values.Set("media["+key+"]", value)
+	}
+	for _, profile := range u.ProfileIds {
+		values.Set("profile_ids[]", profile)
+	}
+	values.Set("shorten", strconv.FormatBool(u.Shorten))
+	values.Set("now", strconv.FormatBool(u.Now))
+	return
 }
