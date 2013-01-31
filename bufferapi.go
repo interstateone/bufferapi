@@ -45,20 +45,22 @@ type NewUpdate struct {
 	Media      map[string]string `json:"media"`
 }
 
+type Media map[string]string
+
 type Update struct {
-	Id             string            `json:"id"`
-	CreatedAt      int               `json:"created_at"`
-	Day            string            `json:"day"`
-	DueAt          int               `json:"due_at"`
-	DueTime        string            `json:"due_time"`
-	media          map[string]string `json:"media"`
-	ProfileId      string            `json:"profile_id"`
-	ProfileService string            `json:"profile_service"`
-	Status         string            `json:"status"`
-	Text           string            `json:"text"`
-	TextFormatted  string            `json:"text_formatted"`
-	UserId         string            `json:"user_id"`
-	Via            string            `json:"via"`
+	Id             string `json:"id"`
+	CreatedAt      int    `json:"created_at"`
+	Day            string `json:"day"`
+	DueAt          int    `json:"due_at"`
+	DueTime        string `json:"due_time"`
+	Media          media  `json:"media"`
+	ProfileId      string `json:"profile_id"`
+	ProfileService string `json:"profile_service"`
+	Status         string `json:"status"`
+	Text           string `json:"text"`
+	TextFormatted  string `json:"text_formatted"`
+	UserId         string `json:"user_id"`
+	Via            string `json:"via"`
 }
 
 type UpdateResponse struct {
