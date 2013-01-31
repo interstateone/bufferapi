@@ -53,7 +53,7 @@ type Update struct {
 	Day            string `json:"day"`
 	DueAt          int    `json:"due_at"`
 	DueTime        string `json:"due_time"`
-	Media          media  `json:"media"`
+	Media          Media  `json:"media"`
 	ProfileId      string `json:"profile_id"`
 	ProfileService string `json:"profile_service"`
 	Status         string `json:"status"`
